@@ -115,26 +115,36 @@ func (s *Storage) Put(key string, value []byte) error {
 	newEntry := NewEntry([]byte(key), value, PUT)
 	encodedEntry, err := newEntry.Encode()
 	if err != nil {
+		fmt.Printf("encode error: %v\n", err)
 		return err
 	}
 
-	// 確認是否需要分割文件
+	// 确认是否需要分割文件
 	lastFile := s.getLastFile()
 	if lastFile == nil || lastFile.Offset+int64(len(encodedEntry)) > s.fileLimit {
 		if err := s.AddFile(); err != nil {
+			fmt.Printf("add file error: %v\n", err)
 			return err
 		}
 		lastFile = s.getLastFile()
 	}
+	fmt.Printf("lastFile: %v\n", lastFile.Offset)
+	// 保存写入前的文件偏移量
+	// fileOffsetBeforeWrite := lastFile.Offset
 
-	// 將 Entry 寫入最後一個數據文件
-	err = lastFile.Write(newEntry)
+	// 将 Entry 写入最后一个数据文件
+	offset, err := lastFile.Write(newEntry)
 	if err != nil {
+		fmt.Printf("write error: %v\n", err)
 		return err
 	}
+	fmt.Printf("dataFiles: %v\n", s.dataFiles)
+	fmt.Printf("dataFiles length: %v\n", len(s.dataFiles))
+	// 更新索引，保存写入前的偏移量，而不是写入后的偏移量
+	s.index[string(key)] = valueLocation{fileIndex: len(s.dataFiles) - 1, offset: offset}
 
-	// 更新索引，保存該鍵的偏移量
-	s.index[key] = valueLocation{fileIndex: len(s.dataFiles) - 1, offset: lastFile.Offset - newEntry.GetSize()}
+	fmt.Printf("File offset after writing key %s: %d\n", key, lastFile.Offset)
+
 	return nil
 }
 
@@ -142,24 +152,32 @@ func (s *Storage) Put(key string, value []byte) error {
 func (s *Storage) Get(key string) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-
-	// 確認鍵是否存在
+	fmt.Printf("get key: %s\n", key)
+	// 确认键是否存在
 	loc, ok := s.index[key]
+	fmt.Printf("loc: %v\n", loc)
 	if !ok {
-		return nil, errors.New("鍵不存在")
+		fmt.Printf("key not found\n")
+		return nil, errors.New("键不存在")
 	}
+	fmt.Printf("loc fileIndex: %v\n", loc.fileIndex)
+	// 打印调试信息，查看从索引中获取的偏移量
+	fmt.Printf("Offset retrieved from index for key %s: %d\n", key, loc.offset)
 
-	// 根據 loc 找到對應的文件並讀取
+	// 根据 loc 找到对应的文件并读取
 	if loc.fileIndex < 0 || loc.fileIndex >= len(s.dataFiles) {
-		return nil, errors.New("無效的文件索引")
+		return nil, errors.New("无效的文件索引")
 	}
 
 	file := s.dataFiles[loc.fileIndex]
+	if file == nil {
+		return nil, errors.New("文件不存在")
+	}
 	entry, err := file.Read(loc.offset)
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("get entry: %v\n", entry)
 	return entry.Value, nil
 }
 

@@ -1,6 +1,7 @@
 package bitcask
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -14,6 +15,7 @@ func createTempDir(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
+	fmt.Println("Temporary directory created at:", dir)
 	return dir
 }
 
@@ -47,21 +49,24 @@ func TestStorageFileSplitting(t *testing.T) {
 }
 
 func TestStoragePutAndGet(t *testing.T) {
-	//測試數據寫入與讀取
-	// 初始化測試環境
+	// 初始化测试环境
 	dir := createTempDir(t)
 	defer cleanupTempDir(t, dir)
 
 	storage := NewStorage(dir, 1024) // 使用 1KB 文件上限
 
-	// 寫入鍵值對
+	// 写入键值对
 	err := storage.Put("username", []byte("john_doe"))
 	assert.NoError(t, err, "Put should succeed")
-
-	// 讀取鍵值對
+	//測試轉byte 兩個是否相等
+	fmt.Printf("compare byte: %v\n %v\n", []byte("john_doe"), []byte("john_doe"))
+	// 尝试读取键值对
 	value, err := storage.Get("username")
 	assert.NoError(t, err, "Get should succeed")
 	assert.Equal(t, []byte("john_doe"), value, "Value should match")
+
+	// 打印调试信息，验证读取的值是否正确
+	fmt.Printf("Read value for 'username': %s\n", value)
 }
 
 // func TestStorageReload(t *testing.T) {
