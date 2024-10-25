@@ -1,4 +1,4 @@
-package bitcask
+package main
 
 import (
 	"encoding/binary"
@@ -211,6 +211,40 @@ func (bc *Bitcask) Get(key []byte) ([]byte, error) {
 	return entry.Value, nil
 }
 
+// 替代 os.Rename 的跨设备复制函数
+func replaceFile(src, dst string) error {
+	// 打开源文件
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("error opening source file: %v", err)
+	}
+	defer srcFile.Close()
+
+	// 创建目标文件
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("error creating destination file: %v", err)
+	}
+	defer dstFile.Close()
+
+	// 将源文件的内容复制到目标文件
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return fmt.Errorf("error copying file: %v", err)
+	}
+
+	// 确保数据写入磁盘
+	if err := dstFile.Sync(); err != nil {
+		return fmt.Errorf("error syncing destination file: %v", err)
+	}
+
+	// 删除源文件
+	if err := os.Remove(src); err != nil {
+		return fmt.Errorf("error removing source file: %v", err)
+	}
+
+	return nil
+}
+
 // Merge 功能，将有效的 PUT 记录合并到新文件
 func (bc *Bitcask) Merge() error {
 	bc.mu.Lock()
@@ -260,13 +294,24 @@ func (bc *Bitcask) Merge() error {
 		}
 	}
 
-	// 用临时文件替换原始文件
-	if err := os.Rename(tempFile.Name(), bc.file.Name()); err != nil {
-		return err
+	// 尝试用临时文件替换原始文件
+	tempFileName := tempFile.Name()
+	bc.file.Close()
+
+	if err := os.Rename(tempFileName, bc.file.Name()); err != nil {
+		// 如果跨设备重命名失败，执行手动复制和替换
+		if err := replaceFile(tempFileName, bc.file.Name()); err != nil {
+			return fmt.Errorf("error replacing file: %v", err)
+		}
 	}
 
 	// 重建内存索引
 	bc.keyDir = KeyDir{}
+	newFile, err := os.OpenFile(bc.file.Name(), os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	bc.file = newFile
 	return bc.buildIndex()
 }
 
@@ -330,27 +375,90 @@ func NewBitcask(filename string) (*Bitcask, error) {
 }
 
 func main() {
+	// 初始化 Bitcask 数据库
 	bitcask, err := NewBitcask("bitcask.db")
 	if err != nil {
 		fmt.Printf("Error initializing Bitcask: %v\n", err)
 		return
 	}
 
-	// 写入键值对
+	// 1. 写入键值对
+	fmt.Println("Inserting 'name' -> 'Alice'")
 	if err := bitcask.Put([]byte("name"), []byte("Alice")); err != nil {
 		fmt.Printf("Error writing to Bitcask: %v\n", err)
 	}
 
-	// 获取键值对
+	fmt.Println("Inserting 'address' -> 'Taiwan'")
+	if err := bitcask.Put([]byte("address"), []byte("Taiwan")); err != nil {
+		fmt.Printf("Error writing to Bitcask: %v\n", err)
+	}
+
+	// 2. 读取键值对，验证插入
 	value, err := bitcask.Get([]byte("name"))
 	if err != nil {
 		fmt.Printf("Error reading from Bitcask: %v\n", err)
 	} else {
-		fmt.Printf("Value for 'name': %s\n", value)
+		fmt.Printf("Value for 'name': %s\n", value) // 应输出 Alice
 	}
 
-	// 合并文件
+	// 3. 更新键值对，验证更新
+	fmt.Println("Updating 'name' -> 'Bob'")
+	if err := bitcask.Put([]byte("name"), []byte("Bob")); err != nil {
+		fmt.Printf("Error updating Bitcask: %v\n", err)
+	}
+
+	value, err = bitcask.Get([]byte("name"))
+	if err != nil {
+		fmt.Printf("Error reading from Bitcask after update: %v\n", err)
+	} else {
+		fmt.Printf("Value for 'name' after update: %s\n", value) // 应输出 Bob
+	}
+
+	// 4. 删除键值对，验证删除
+	fmt.Println("Deleting 'name'")
+	if err := bitcask.Delete([]byte("name")); err != nil {
+		fmt.Printf("Error deleting from Bitcask: %v\n", err)
+	}
+
+	value, err = bitcask.Get([]byte("name"))
+	if err != nil {
+		fmt.Printf("Expected error reading deleted 'name': %v\n", err) // 应输出错误信息
+	} else {
+		fmt.Printf("Unexpected value for deleted 'name': %s\n", value)
+	}
+
+	// 5. 再次插入键值对，验证重新插入
+	fmt.Println("Inserting 'name' -> 'Charlie'")
+	if err := bitcask.Put([]byte("name"), []byte("Charlie")); err != nil {
+		fmt.Printf("Error writing to Bitcask: %v\n", err)
+	}
+
+	value, err = bitcask.Get([]byte("name"))
+	if err != nil {
+		fmt.Printf("Error reading from Bitcask after re-insertion: %v\n", err)
+	} else {
+		fmt.Printf("Value for 'name' after re-insertion: %s\n", value) // 应输出 Charlie
+	}
+
+	// 6. 合并文件，验证合并操作
+	fmt.Println("Merging entries...")
 	if err := bitcask.Merge(); err != nil {
 		fmt.Printf("Error during merge: %v\n", err)
+	}
+
+	// 7. 读取键值对，验证合并后数据是否仍然有效
+	value, err = bitcask.Get([]byte("name"))
+	if err != nil {
+		fmt.Printf("Error reading from Bitcask after merge: %v\n", err)
+	} else {
+		fmt.Printf("Value for 'name' after merge: %s\n", value) // 应输出 Charlie
+	}
+
+	// 8. 讀取 address
+	value, err = bitcask.Get([]byte("address"))
+	if err != nil {
+		fmt.Printf("Error reading from Bitcask: %v\n", err)
+	} else {
+		fmt.Printf("Value for 'address': %s\n", value)
 	}
 }
