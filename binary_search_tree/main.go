@@ -157,6 +157,75 @@ func leftRotate(x *Node) *Node {
 	return y
 }
 
+func (b *BinarySearchTree) deleteNode(value int) {
+	b.Root = b.deleteNodeByNode(b.Root, value)
+	b.Len--
+}
+
+func (b *BinarySearchTree) deleteNodeByNode(node *Node, value int) *Node {
+	if node == nil {
+		return nil
+	}
+
+	// 樹中查找要刪除的節點
+	if value < node.Value {
+		node.Left = b.deleteNodeByNode(node.Left, value)
+	} else if value > node.Value {
+		node.Right = b.deleteNodeByNode(node.Right, value)
+	} else {
+		// 找到要刪除的節點
+		if node.Left == nil {
+			return node.Right
+		} else if node.Right == nil {
+			return node.Left
+		}
+
+		// 情況 3：節點有兩個子節點，找到右子樹的最小值節點
+		minRight := minValueNode(node.Right)
+		node.Value = minRight.Value
+		node.Right = b.deleteNodeByNode(node.Right, minRight.Value)
+	}
+
+	// 更新節點高度
+	node.Height = 1 + max(height(node.Left), height(node.Right))
+
+	// 檢查並恢復 AVL 樹的平衡
+	balance := getBalance(node)
+
+	// 左左情況
+	if balance > 1 && getBalance(node.Left) >= 0 {
+		return rightRotate(node)
+	}
+
+	// 左右情況
+	if balance > 1 && getBalance(node.Left) < 0 {
+		node.Left = leftRotate(node.Left)
+		return rightRotate(node)
+	}
+
+	// 右右情況
+	if balance < -1 && getBalance(node.Right) <= 0 {
+		return leftRotate(node)
+	}
+
+	// 右左情況
+	if balance < -1 && getBalance(node.Right) > 0 {
+		node.Right = rightRotate(node.Right)
+		return leftRotate(node)
+	}
+
+	return node
+}
+
+// 尋找最小值節點
+func minValueNode(node *Node) *Node {
+	current := node
+	for current.Left != nil {
+		current = current.Left
+	}
+	return current
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -208,20 +277,29 @@ func main() {
 
 	fmt.Println(bst)
 
+	fmt.Println("--------------------------------")
+
 	bst.addNode(4)
 	bst.addNode(5)
 	bst.addNode(6)
 	bst.addNode(7)
 	bst.addNode(8)
 	bst.addNode(9)
-	fmt.Println("After adding nodes:")
+	fmt.Println("新增節點 4, 5, 6, 7, 8, 9")
 	fmt.Println(bst)
 
+	fmt.Println("--------------------------------")
 	node, found := bst.search(4)
 	if found {
 		fmt.Printf("搜索 4: 找到了，節點值為 %d\n", node.Value)
 	} else {
 		fmt.Println("搜索 4: 未找到")
 	}
+
+	fmt.Println("--------------------------------")
+
+	bst.deleteNode(5)
+	fmt.Println("刪除節點 5")
+	fmt.Println(bst)
 
 }
