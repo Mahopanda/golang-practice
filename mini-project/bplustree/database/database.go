@@ -3,8 +3,8 @@ package database
 import (
 	"hash/fnv"
 
-	"github.com/Mahopanda/mini-bitcask/bplustree"
-	"github.com/Mahopanda/mini-bitcask/bplustree/models"
+	"github.com/Mahopanda/mini-project/bplustree"
+	"github.com/Mahopanda/mini-project/bplustree/models"
 )
 
 // 定義多 B+ 樹來支持多個欄位的查詢

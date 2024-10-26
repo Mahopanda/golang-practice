@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/Mahopanda/mini-bitcask/bplustree"
-	"github.com/Mahopanda/mini-bitcask/bplustree/database"
-	"github.com/Mahopanda/mini-bitcask/bplustree/models"
+	"github.com/Mahopanda/mini-project/bplustree"
+	"github.com/Mahopanda/mini-project/bplustree/database"
+	"github.com/Mahopanda/mini-project/bplustree/models"
 )
 
 func main() {

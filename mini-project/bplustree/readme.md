@@ -12,15 +12,17 @@
             |                   |
     +-------+--------+    +-----+-------+
     |                |    |             |
-+-------+       +-------+     +-------+       +-------+
-| Leaf  |       | Leaf  |     | Leaf  |       | Leaf  |
-| Keys: |       | Keys: |     | Keys: |       | Keys: |
-| [1, 2]|       | [4, 5]|     | [6, 7]|       | [8, 9]|
-+-------+       +-------+     +-------+       +-------+
 
++-------+ +-------+ +-------+ +-------+
+| Leaf | | Leaf | | Leaf | | Leaf |
+| Keys: | | Keys: | | Keys: | | Keys: |
+| [1, 2]| | [4, 5]| | [6, 7]| | [8, 9]|
++-------+ +-------+ +-------+ +-------+
 
 ## B+ 樹的運作流程
+
 ###1. 插入
+
 1. 插入鍵值對 (4, "Alice")
 2. 插入鍵值對 (5, "Bob")
 3. 插入鍵值對 (6, "Charlie")
@@ -36,24 +38,23 @@
 從根節點開始，根據鍵的大小找到合適的子節點並逐層向下查詢。
 一旦到達葉節點，即可在該節點中查找並返回對應值。
 
-###3. 刪除 
+###3. 刪除
 刪除鍵時，從根節點查找到合適的葉節點，然後從葉節點刪除該鍵。
 如果刪除導致節點鍵數不足，則會嘗試從相鄰的兄弟節點借用鍵，或合併該節點與其兄弟節點。
 
 ###4. 更新
 更新的流程與查詢相似。找到葉節點後，直接更新對應鍵的值。
 
-
 ---
 
 ## 時序圖
 
 sequenceDiagram
-    participant Client
-    participant BPlusTree
-    participant RootNode
-    participant InternalNode
-    participant LeafNode
+participant Client
+participant BPlusTree
+participant RootNode
+participant InternalNode
+participant LeafNode
 
     Client->>BPlusTree: Insert(Key, Value)
     BPlusTree->>RootNode: Traverse to find insertion node

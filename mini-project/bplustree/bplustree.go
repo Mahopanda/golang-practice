@@ -1,7 +1,7 @@
 package bplustree
 
 import (
-	"github.com/Mahopanda/mini-bitcask/bplustree/models"
+	"github.com/Mahopanda/mini-project/bplustree/models"
 )
 
 type BPlusTree struct {
