@@ -6,9 +6,10 @@ import (
 )
 
 type Node struct {
-	Value int
-	Left  *Node
-	Right *Node
+	Value  int
+	Left   *Node
+	Right  *Node
+	Height int
 }
 
 type BinarySearchTree struct {
@@ -29,20 +30,29 @@ func (b *BinarySearchTree) printTree(node *Node, prefix string, isLeft bool) str
 
 	var sb strings.Builder
 
-	sb.WriteString(prefix)
+	// 根據節點位置選擇適當的符號
 	if isLeft {
-		sb.WriteString("├── ")
+		sb.WriteString(prefix + "├── ")
 	} else {
-		sb.WriteString("└── ")
+		sb.WriteString(prefix + "└── ")
 	}
 	sb.WriteString(fmt.Sprintf("%d\n", node.Value))
 
-	childPrefix := prefix + (map[bool]string{true: "│   ", false: "    "})[isLeft]
-	if node.Left != nil {
-		sb.WriteString(b.printTree(node.Left, childPrefix, true))
-	}
-	if node.Right != nil {
-		sb.WriteString(b.printTree(node.Right, childPrefix, false))
+	// 計算新的前綴
+	newPrefix := prefix + (map[bool]string{true: "│   ", false: "    "})[isLeft]
+
+	// 遞迴處理左右子節點
+	if node.Left != nil || node.Right != nil {
+		if node.Left != nil {
+			sb.WriteString(b.printTree(node.Left, newPrefix, true))
+		} else {
+			sb.WriteString(newPrefix + "├── (null)\n") // 顯示空節點位置
+		}
+		if node.Right != nil {
+			sb.WriteString(b.printTree(node.Right, newPrefix, false))
+		} else {
+			sb.WriteString(newPrefix + "└── (null)\n") // 顯示空節點位置
+		}
 	}
 
 	return sb.String()
@@ -63,8 +73,95 @@ func (b *BinarySearchTree) inOrderTraversalByNode(root *Node, sb *strings.Builde
 }
 
 func (b *BinarySearchTree) addNode(value int) {
-	b.Root = b.addNodeByNode(b.Root, value)
+	b.Root = b.addNodeBalanced(b.Root, value)
 	b.Len++
+}
+
+func (b *BinarySearchTree) addNodeBalanced(node *Node, value int) *Node {
+	if node == nil {
+		return &Node{Value: value, Height: 1}
+	}
+
+	if value < node.Value {
+		node.Left = b.addNodeBalanced(node.Left, value)
+	} else {
+		node.Right = b.addNodeBalanced(node.Right, value)
+	}
+
+	node.Height = 1 + max(height(node.Left), height(node.Right))
+
+	balance := getBalance(node)
+
+	// 左左情況
+	if balance > 1 && value < node.Left.Value {
+		return rightRotate(node)
+	}
+
+	// 右右情況
+	if balance < -1 && value > node.Right.Value {
+		return leftRotate(node)
+	}
+
+	// 左右情況
+	if balance > 1 && value > node.Left.Value {
+		node.Left = leftRotate(node.Left)
+		return rightRotate(node)
+	}
+
+	// 右左情況
+	if balance < -1 && value < node.Right.Value {
+		node.Right = rightRotate(node.Right)
+		return leftRotate(node)
+	}
+
+	return node
+}
+
+func height(node *Node) int {
+	if node == nil {
+		return 0
+	}
+	return node.Height
+}
+
+func getBalance(node *Node) int {
+	if node == nil {
+		return 0
+	}
+	return height(node.Left) - height(node.Right)
+}
+
+func rightRotate(y *Node) *Node {
+	x := y.Left
+	T2 := x.Right
+
+	x.Right = y
+	y.Left = T2
+
+	y.Height = 1 + max(height(y.Left), height(y.Right))
+	x.Height = 1 + max(height(x.Left), height(x.Right))
+
+	return x
+}
+
+func leftRotate(x *Node) *Node {
+	y := x.Right
+	T2 := y.Left
+
+	y.Left = x
+	x.Right = T2
+
+	x.Height = 1 + max(height(x.Left), height(x.Right))
+	y.Height = 1 + max(height(y.Left), height(y.Right))
+
+	return y
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func (b *BinarySearchTree) addNodeByNode(root *Node, value int) *Node {
@@ -116,7 +213,7 @@ func main() {
 	bst.addNode(6)
 	bst.addNode(7)
 	bst.addNode(8)
-
+	bst.addNode(9)
 	fmt.Println("After adding nodes:")
 	fmt.Println(bst)
 
