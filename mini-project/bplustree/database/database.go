@@ -37,3 +37,15 @@ func (db *Database) QueryByName(name string) *models.Value {
 func (db *Database) QueryByID(id int) *models.Value {
 	return db.ByID.Search(models.Key(id))
 }
+
+// RangeQueryByID 查詢給定範圍內的記錄（根據 ID）
+func (db *Database) RangeQueryByID(minID, maxID int) []*models.Value {
+	return db.ByID.RangeQuery(models.Key(minID), models.Key(maxID))
+}
+
+// RangeQueryByName 查詢給定範圍內的記錄（根據 Name hash）
+func (db *Database) RangeQueryByName(minName, maxName string) []*models.Value {
+	minHash := models.Key(HashKey(minName))
+	maxHash := models.Key(HashKey(maxName))
+	return db.ByName.RangeQuery(minHash, maxHash)
+}

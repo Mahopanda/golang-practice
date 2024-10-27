@@ -267,6 +267,35 @@ func (b *BinarySearchTree) searchByNode(root *Node, value int) (*Node, bool) {
 	return b.searchByNode(root.Right, value)
 }
 
+// RangeQuery 查詢指定範圍內的所有節點值
+func (b *BinarySearchTree) RangeQuery(lower, upper int) []int {
+	var result []int
+	b.rangeQueryByNode(b.Root, lower, upper, &result)
+	return result
+}
+
+// rangeQueryByNode 遞迴查詢每個節點，找出範圍內的值
+func (b *BinarySearchTree) rangeQueryByNode(node *Node, lower, upper int, result *[]int) {
+	if node == nil {
+		return
+	}
+
+	// 範圍查詢：若當前節點的值在範圍內，則將其加入結果
+	if node.Value >= lower && node.Value <= upper {
+		*result = append(*result, node.Value)
+	}
+
+	// 若當前節點的值大於下限，則向左子樹查找
+	if node.Value > lower {
+		b.rangeQueryByNode(node.Left, lower, upper, result)
+	}
+
+	// 若當前節點的值小於上限，則向右子樹查找
+	if node.Value < upper {
+		b.rangeQueryByNode(node.Right, lower, upper, result)
+	}
+}
+
 func main() {
 	n := &Node{Value: 2, Left: nil, Right: nil}
 	n.Left = &Node{Value: 1, Left: nil, Right: nil}
@@ -287,6 +316,17 @@ func main() {
 	bst.addNode(9)
 	fmt.Println("新增節點 4, 5, 6, 7, 8, 9")
 	fmt.Println(bst)
+
+	fmt.Println("--------------------------------")
+
+	bst.addNode(12)
+	bst.addNode(18)
+	bst.addNode(15)
+	bst.addNode(10)
+
+	fmt.Println("範圍查詢 6 到 15:")
+	result := bst.RangeQuery(6, 15)
+	fmt.Println(result)
 
 	fmt.Println("--------------------------------")
 	node, found := bst.search(4)
