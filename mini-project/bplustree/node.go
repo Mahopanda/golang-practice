@@ -6,11 +6,11 @@ import (
 
 // Node 表示 B+ 樹中的一個節點
 type Node struct {
-	IsLeaf   bool         // 指示此節點是否為葉節點 (true 表示葉節點，false 表示內部節點)
-	Keys     []models.Key // 此節點內的已排序鍵
-	Children []*Node      // 指向子節點的引用（僅在 IsLeaf 為 false 時使用）
+	IsLeaf   bool            // 指示此節點是否為葉節點 (true 表示葉節點，false 表示內部節點)
+	Keys     []models.Key    // 此節點內的已排序鍵
+	Children []*Node         // 指向子節點的引用（僅在 IsLeaf 為 false 時使用）
 	Values   []*models.Value // 與鍵對應的值（僅在 IsLeaf 為 true 時使用）
-	Next     *Node        // 指向下一個葉節點，用於支持高效範圍查詢
+	Next     *Node           // 指向下一個葉節點，用於支持高效範圍查詢
 }
 
 // insertNonFull 將鍵和值插入到非滿的節點中
@@ -62,31 +62,30 @@ func (tree *BPlusTree) insertNonFull(node *Node, key models.Key, value models.Va
 	}
 }
 
-// splitChild 將滿載的子節點分裂為兩個節點，並更新父節點
 func (tree *BPlusTree) splitChild(parent *Node, index int) {
 	fullNode := parent.Children[index]        // 獲取要分裂的滿載子節點
-	newNode := &Node{IsLeaf: fullNode.IsLeaf} // 創建一個新節點，用於存儲分裂後的一半數據
-	mid := len(fullNode.Keys) / 2             // 獲取分裂點的索引，將節點一分為二
+	newNode := &Node{IsLeaf: fullNode.IsLeaf} // 創建新節點，用於存儲分裂後的一半數據
+	mid := len(fullNode.Keys) / 2             // 獲取分裂點的索引
 
+	// 初始化和分配葉節點或內部節點的鍵值
 	if fullNode.IsLeaf {
-		// 如果是葉子節點的分裂
-		newNode.Keys = append(newNode.Keys, fullNode.Keys[mid:]...)       // 將 fullNode 的後半部分鍵移動到 newNode 中
-		newNode.Values = append(newNode.Values, fullNode.Values[mid:]...) // 將 fullNode 的後半部分值移動到 newNode 中
-		fullNode.Keys = fullNode.Keys[:mid]                               // 保留 fullNode 的前半部分鍵
-		fullNode.Values = fullNode.Values[:mid]                           // 保留 fullNode 的前半部分值
-		newNode.Next = fullNode.Next                                      // 更新 newNode 的 Next 指針，使其指向 fullNode 原本指向的下一個節點
-		fullNode.Next = newNode                                           // 將 fullNode 的 Next 指針設置為 newNode，以便保持葉節點鏈接
+		// 分裂葉節點
+		newNode.Keys = append(newNode.Keys, fullNode.Keys[mid:]...)
+		newNode.Values = append(newNode.Values, fullNode.Values[mid:]...)
+		fullNode.Keys = fullNode.Keys[:mid]
+		fullNode.Values = fullNode.Values[:mid]
+		newNode.Next = fullNode.Next
+		fullNode.Next = newNode
 	} else {
-		// 如果是內部節點的分裂
-		newNode.Keys = append(newNode.Keys, fullNode.Keys[mid+1:]...)             // 將 fullNode 的後半部分鍵移動到 newNode 中
-		newNode.Children = append(newNode.Children, fullNode.Children[mid+1:]...) // 將 fullNode 的後半部分子節點移動到 newNode 中
-		fullNode.Keys = fullNode.Keys[:mid]                                       // 保留 fullNode 的前半部分鍵
-		fullNode.Children = fullNode.Children[:mid+1]                             // 保留 fullNode 的前半部分子節點
+		// 分裂內部節點
+		newNode.Keys = append(newNode.Keys, fullNode.Keys[mid+1:]...)
+		newNode.Children = append(newNode.Children, fullNode.Children[mid+1:]...)
+		fullNode.Keys = fullNode.Keys[:mid]
+		fullNode.Children = fullNode.Children[:mid+1]
 	}
 
-	// 將分裂點的鍵插入到父節點中
+	// 更新父節點的鍵值和子節點
 	parent.Keys = append(parent.Keys[:index], append([]models.Key{fullNode.Keys[mid]}, parent.Keys[index:]...)...)
-	// 將新節點插入到父節點的 Children 中
 	parent.Children = append(parent.Children[:index+1], append([]*Node{newNode}, parent.Children[index+1:]...)...)
 }
 
