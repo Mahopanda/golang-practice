@@ -13,6 +13,33 @@ type Database struct {
 	ByName *bplustree.BPlusTree // Name 索引樹
 }
 
+type Tables struct {
+	Tables map[string]*bplustree.BPlusTree
+}
+
+func (db *Tables) AddTable(name string) {
+	db.Tables[name] = bplustree.NewBPlusTree(3) // 假設默認階數為 3
+}
+
+func (db *Tables) RemoveTable(name string) {
+	delete(db.Tables, name)
+}
+
+func (db *Tables) GetTable(name string) *bplustree.BPlusTree {
+	return db.Tables[name]
+}
+
+func (db *Database) ExecuteQuery(query string) (*models.Value, error) {
+	statement, err := parser.Parse(query)
+	if err != nil {
+		return nil, err
+	}
+
+	executor := parser.QueryExecutor{DB: db}
+	return executor.Execute(statement)
+}
+
+
 // Record 表示一條完整記錄，包含多個欄位
 type Record struct {
 	ID   int
