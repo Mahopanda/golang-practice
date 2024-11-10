@@ -21,6 +21,46 @@
 * 實作的多欄位索引結構，便於快速查詢多個欄位資料。
 * 建立簡易 Database 模組，支援多欄位索引，允許根據 ID 和名稱等不同欄位進行查詢。
 
+### SQL Parser 模組
+#### 簡介
+實作一個 SQL 解析器，支援基本的 SQL 語句解析，包括資料定義語言（DDL）和資料操作語言（DML）。
+
+#### 支援的 SQL 語句
+1. 資料定義語言 (DDL)
+   * CREATE TABLE - 建立新表格
+   * DROP TABLE - 刪除現有表格
+
+2. 資料操作語言 (DML)
+   * SELECT - 查詢資料，支援條件篩選
+   * INSERT - 插入單筆資料
+   * UPDATE - 更新資料，支援條件篩選
+   * DELETE - 刪除資料，支援條件篩選
+   * BULK INSERT - 批量插入多筆資料
+
+#### 語法特點
+* WHERE 子句支援基本的比較運算（=）
+* INSERT 支援單筆和批量插入
+* CREATE TABLE 支援基本的資料型別定義（INTEGER、STRING）
+* 支援標準 SQL 語法，如：
+  ```sql
+  -- 單筆插入
+  INSERT INTO users (name, age) VALUES ("John", 25);
+  
+  -- 批量插入
+  INSERT INTO employees (id, name, age, department) VALUES 
+    (1, "Peter Parker", 19, "IT"),
+    (2, "Bruce Wayne", 29, "Automobile");
+  
+  -- 條件查詢
+  SELECT name, age FROM users WHERE age = 30;
+  ```
+
+#### 技術實現
+* 採用遞歸下降解析方法
+* 支援詞法分析（Lexical Analysis）和語法分析（Syntax Analysis）
+* 使用模組化設計，易於擴展新的 SQL 功能
+* 完整的錯誤處理和錯誤提示機制
+
 ## 練習 Memory Mapped Files
 
 * 利用 mmap 和 munmap 函數將文件內容映射到內存中，實作文件讀寫。
